@@ -1,5 +1,9 @@
 # Six Sigma UDFs for Power BI
 
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![Power BI](https://img.shields.io/badge/Power%20BI-Project-yellow?logo=powerbi&logoColor=white)
+![DAX](https://img.shields.io/badge/DAX-User--Defined%20Functions-orange)
+
 A reusable library of Six Sigma statistical process control (SPC) functions for Power BI, written as genuine DAX user-defined functions (UDFs) rather than one-off measures. Every function is fully model-agnostic — tables and columns are passed in as typed parameters (`TABLE`, `COLUMNREF`, `SCALAR`), never hardcoded — so the same library drops into any dataset with a value column and a time column. This repo includes a full worked example (UK grid frequency) to prove that claim, but the UDFs themselves are the point.
 
 ## The library ([`udf-library/functions.tmdl`](udf-library/functions.tmdl))
@@ -48,4 +52,6 @@ Note this is a duplicate, standalone copy for easy discovery/reuse — the copy 
 
 ## License / attribution
 
-Grid frequency data is published by NESO under their open data licence — see the [data portal page](https://www.neso.energy/data-portal/system-frequency-data) for current terms.
+The code in this repository (DAX UDFs, measures, and the PBIP project) is licensed under [MIT](LICENSE).
+
+Grid frequency data is published by NESO under their own open data licence — see the [data portal page](https://www.neso.energy/data-portal/system-frequency-data) for current terms. This licence covers the data only, not the code in this repository.
