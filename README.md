@@ -2,7 +2,7 @@
 
 A reusable library of Six Sigma statistical process control (SPC) functions for Power BI, written as genuine DAX user-defined functions (UDFs) rather than one-off measures. Every function is fully model-agnostic — tables and columns are passed in as typed parameters (`TABLE`, `COLUMNREF`, `SCALAR`), never hardcoded — so the same library drops into any dataset with a value column and a time column. This repo includes a full worked example (UK grid frequency) to prove that claim, but the UDFs themselves are the point.
 
-## The library (`functions.tmdl`)
+## The library ([`udf-library/functions.tmdl`](udf-library/functions.tmdl))
 
 Fourteen functions covering the standard Six Sigma capability toolkit:
 
@@ -42,7 +42,9 @@ Requires a recent version of Power BI Desktop with DAX user-defined functions en
 
 ## Reusing the library on your own data
 
-Copy `functions.tmdl` into your own PBIP project's semantic model definition folder, then write measures that call the functions against your own fact table's value/time columns and your own USL/LSL source — a Dim table like `Dim_GridThresholds` here, or a hardcoded constant if you don't need one to be data-driven. No changes to `functions.tmdl` itself should be necessary.
+Copy [`udf-library/functions.tmdl`](udf-library/functions.tmdl) into your own PBIP project's semantic model definition folder, then write measures that call the functions against your own fact table's value/time columns and your own USL/LSL source — a Dim table like `Dim_GridThresholds` here, or a hardcoded constant if you don't need one to be data-driven. No changes to `functions.tmdl` itself should be necessary.
+
+Note this is a duplicate, standalone copy for easy discovery/reuse — the copy actually wired into the worked example below lives at `SixSigma_Frequency.SemanticModel/definition/functions.tmdl`. If you fix or extend a function, update both copies (or replace the standalone one with a symlink, if your OS/git setup handles that comfortably).
 
 ## License / attribution
 
