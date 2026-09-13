@@ -38,13 +38,13 @@ In the worked example, Cp/Cpk and Pp/Ppk diverge sharply, and that's a real find
 
 ## Opening the worked example
 
-Requires a recent version of Power BI Desktop with DAX user-defined functions enabled (compatibility level 1702+). Open `SixSigma_Frequency.pbip` directly in Power BI Desktop.
+Requires a recent version of Power BI Desktop with DAX user-defined functions enabled (compatibility level 1702+). Open `SixSigma_NationalGrid.pbip` directly in Power BI Desktop.
 
 ## Reusing the library on your own data
 
 Copy [`udf-library/functions.tmdl`](udf-library/functions.tmdl) into your own PBIP project's semantic model definition folder, then write measures that call the functions against your own fact table's value/time columns and your own USL/LSL source — a Dim table like `Dim_GridThresholds` here, or a hardcoded constant if you don't need one to be data-driven. No changes to `functions.tmdl` itself should be necessary.
 
-Note this is a duplicate, standalone copy for easy discovery/reuse — the copy actually wired into the worked example below lives at `SixSigma_Frequency.SemanticModel/definition/functions.tmdl`. If you fix or extend a function, update both copies (or replace the standalone one with a symlink, if your OS/git setup handles that comfortably).
+Note this is a duplicate, standalone copy for easy discovery/reuse — the copy actually wired into the worked example below lives at `SixSigma_NationalGrid.SemanticModel/definition/functions.tmdl`. If you fix or extend a function, update both copies (or replace the standalone one with a symlink, if your OS/git setup handles that comfortably).
 
 ## License / attribution
 

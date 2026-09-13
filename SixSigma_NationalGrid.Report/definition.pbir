@@ -3,7 +3,7 @@
   "version": "4.0",
   "datasetReference": {
     "byPath": {
-      "path": "../SixSigma_Frequency.SemanticModel"
+      "path": "../SixSigma_NationalGrid.SemanticModel"
     }
   }
 }

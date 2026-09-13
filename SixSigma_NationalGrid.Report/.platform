@@ -1,11 +1,11 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
   "metadata": {
-    "type": "SemanticModel",
-    "displayName": "SixSigma_Frequency"
+    "type": "Report",
+    "displayName": "SixSigma_NationalGrid"
   },
   "config": {
     "version": "2.0",
-    "logicalId": "9fedd81d-4df5-42a0-9e44-393d76c374b5"
+    "logicalId": "83394f9c-e326-45a4-99ef-5d10caebf703"
   }
 }

@@ -4,7 +4,7 @@
   "artifacts": [
     {
       "report": {
-        "path": "SixSigma_Frequency.Report"
+        "path": "SixSigma_NationalGrid.Report"
       }
     }
   ],
