@@ -36,6 +36,8 @@ To exercise the library end to end, this repo includes a full Power BI Project (
 
 **Report page**: "National Grid Frequency Capability" — four KPI cards (Sigma Level, DPMO, Cpk, Ppk, each with a status label), a control chart with calculated control limits and Nelson Rule 1 violations flagged as distinct markers, and a subtitle naming which day(s), if any, an anomaly was flagged on.
 
+![National Grid Frequency Capability dashboard](assets/SixSigma_NationalGrid.png)
+
 ## A methodological note worth reading before trusting the numbers
 
 In the worked example, Cp/Cpk and Pp/Ppk diverge sharply, and that's a real finding rather than a bug — worth understanding since it'll show up again in any high-frequency dataset you point this library at. Cpk is derived from the *short-term* sigma (the average moving range between consecutive readings), and because grid frequency barely moves from one second to the next, that moving range is tiny — which inflates Cpk to an unrealistically large number. Ppk uses the *population* standard deviation across the whole window instead, which correctly captures the real spread including any flagged excursions, and gives a far more honest capability figure. This is a textbook illustration of why within-subgroup variation understates true process variation when consecutive samples are highly autocorrelated.
