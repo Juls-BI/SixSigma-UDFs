@@ -1,0 +1,86 @@
+DEFINE FUNCTION IsNelsonRule2 = (_CurrentOrder : SCALAR, _Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF) =>
+    VAR _Mean = AVERAGEX(_Table, _ValueColumn)
+    VAR _Ranked = ADDCOLUMNS(_Table, "_RN", RANKX(_Table, _OrderColumn, , ASC, DENSE))
+    VAR _CurrentRN = MAXX(FILTER(_Ranked, _OrderColumn = _CurrentOrder), [_RN])
+    VAR _Window = FILTER(_Ranked, ISNUMBER(_CurrentRN) && [_RN] > _CurrentRN - 9 && [_RN] <= _CurrentRN)
+    VAR _PointCount = COUNTROWS(_Window)
+    VAR _AboveCount = COUNTROWS(FILTER(_Window, _ValueColumn > _Mean))
+    VAR _BelowCount = COUNTROWS(FILTER(_Window, _ValueColumn < _Mean))
+    RETURN
+        IF(
+            ISBLANK(_CurrentRN) || _PointCount < 9,
+            BLANK(),
+            _AboveCount = 9 || _BelowCount = 9
+        )
+
+EVALUATE {1}
+
+DEFINE FUNCTION IsNelsonRule3 = (_CurrentOrder : SCALAR, _Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF) =>
+    VAR _Ranked = ADDCOLUMNS(_Table, "_RN", RANKX(_Table, _OrderColumn, , ASC, DENSE))
+    VAR _CurrentRN = MAXX(FILTER(_Ranked, _OrderColumn = _CurrentOrder), [_RN])
+    VAR _Window = FILTER(_Ranked, ISNUMBER(_CurrentRN) && [_RN] > _CurrentRN - 6 && [_RN] <= _CurrentRN)
+    VAR _WithDiffs =
+        ADDCOLUMNS(
+            _Window,
+            "_Diff",
+                VAR _RN = [_RN]
+                VAR _CurrentVal = _ValueColumn
+                VAR _PriorVal = MAXX(FILTER(_Window, [_RN] = _RN - 1), _ValueColumn)
+                RETURN
+                    IF(ISBLANK(_PriorVal), BLANK(), _CurrentVal - _PriorVal)
+        )
+    VAR _ValidDiffs = FILTER(_WithDiffs, NOT ISBLANK([_Diff]))
+    VAR _DiffCount = COUNTROWS(_ValidDiffs)
+    VAR _IncreasingCount = COUNTROWS(FILTER(_ValidDiffs, [_Diff] > 0))
+    VAR _DecreasingCount = COUNTROWS(FILTER(_ValidDiffs, [_Diff] < 0))
+    RETURN
+        IF(
+            ISBLANK(_CurrentRN) || COUNTROWS(_Window) < 6,
+            BLANK(),
+            (_IncreasingCount = _DiffCount && _DiffCount > 0) || (_DecreasingCount = _DiffCount && _DiffCount > 0)
+        )
+
+EVALUATE {1}
+
+DEFINE FUNCTION IsNelsonRule4 = (_CurrentOrder : SCALAR, _Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF) =>
+    VAR _Ranked = ADDCOLUMNS(_Table, "_RN", RANKX(_Table, _OrderColumn, , ASC, DENSE))
+    VAR _CurrentRN = MAXX(FILTER(_Ranked, _OrderColumn = _CurrentOrder), [_RN])
+    VAR _Window = FILTER(_Ranked, ISNUMBER(_CurrentRN) && [_RN] > _CurrentRN - 14 && [_RN] <= _CurrentRN)
+    VAR _WithDirection =
+        ADDCOLUMNS(
+            _Window,
+            "_Direction",
+                VAR _RN = [_RN]
+                VAR _CurrentVal = _ValueColumn
+                VAR _PriorVal = MAXX(FILTER(_Window, [_RN] = _RN - 1), _ValueColumn)
+                RETURN
+                    IF(
+                        ISBLANK(_PriorVal),
+                        BLANK(),
+                        IF(_CurrentVal > _PriorVal, 1, IF(_CurrentVal < _PriorVal, -1, 0))
+                    )
+        )
+    VAR _WithAlternation =
+        ADDCOLUMNS(
+            _WithDirection,
+            "_Alternates",
+                VAR _RN = [_RN]
+                VAR _CurrentDir = [_Direction]
+                VAR _PriorDir = MAXX(FILTER(_WithDirection, [_RN] = _RN - 1), [_Direction])
+                RETURN
+                    IF(
+                        ISBLANK(_PriorDir) || ISBLANK(_CurrentDir),
+                        BLANK(),
+                        _CurrentDir <> _PriorDir && _CurrentDir <> 0 && _PriorDir <> 0
+                    )
+        )
+    VAR _CheckRows = FILTER(_WithAlternation, NOT ISBLANK([_Alternates]))
+    VAR _FailCount = COUNTROWS(FILTER(_CheckRows, [_Alternates] = FALSE))
+    RETURN
+        IF(
+            ISBLANK(_CurrentRN) || COUNTROWS(_Window) < 14 || COUNTROWS(_CheckRows) < 12,
+            BLANK(),
+            _FailCount = 0
+        )
+
+EVALUATE {1}

@@ -1,0 +1,293 @@
+function NormSInv =
+		(_P : SCALAR) =>
+		    VAR _A1 = -39.69683028665376
+		    VAR _A2 = 220.9460984245205
+		    VAR _A3 = -275.9285104469687
+		    VAR _A4 = 138.3577518672690
+		    VAR _A5 = -30.66479806614716
+		    VAR _A6 = 2.506628277459239
+		    VAR _B1 = -54.47609879822406
+		    VAR _B2 = 161.5858368580409
+		    VAR _B3 = -155.6989798598866
+		    VAR _B4 = 66.80131188771972
+		    VAR _B5 = -13.28068155288572
+		    VAR _C1 = -0.007784894002430293
+		    VAR _C2 = -0.3223964580411365
+		    VAR _C3 = -2.400758277161838
+		    VAR _C4 = -2.549732539343734
+		    VAR _C5 = 4.374664141464968
+		    VAR _C6 = 2.938163982698783
+		    VAR _D1 = 0.007784695709041462
+		    VAR _D2 = 0.3224671290700398
+		    VAR _D3 = 2.445134137142996
+		    VAR _D4 = 3.754408661907416
+		    VAR _PLow = 0.02425
+		    VAR _PHigh = 1 - _PLow
+		    RETURN
+		        IF(
+		            ISBLANK(_P) || _P <= 0 || _P >= 1,
+		            BLANK(),
+		            IF(
+		                _P < _PLow,
+		                VAR _Q = SQRT(-2 * LN(_P))
+		                RETURN
+		                    DIVIDE(
+		                        (((((_C1 * _Q + _C2) * _Q + _C3) * _Q + _C4) * _Q + _C5) * _Q + _C6),
+		                        ((((_D1 * _Q + _D2) * _Q + _D3) * _Q + _D4) * _Q + 1)
+		                    ),
+		                IF(
+		                    _P <= _PHigh,
+		                    VAR _Q2 = _P - 0.5
+		                    VAR _R = _Q2 * _Q2
+		                    RETURN
+		                        DIVIDE(
+		                            (((((_A1 * _R + _A2) * _R + _A3) * _R + _A4) * _R + _A5) * _R + _A6) * _Q2,
+		                            (((((_B1 * _R + _B2) * _R + _B3) * _R + _B4) * _R + _B5) * _R + 1)
+		                        ),
+		                    VAR _Q3 = SQRT(-2 * LN(1 - _P))
+		                    RETURN
+		                        -1 * DIVIDE(
+		                            (((((_C1 * _Q3 + _C2) * _Q3 + _C3) * _Q3 + _C4) * _Q3 + _C5) * _Q3 + _C6),
+		                            ((((_D1 * _Q3 + _D2) * _Q3 + _D3) * _Q3 + _D4) * _Q3 + 1)
+		                        )
+		                )
+		            )
+		        )
+	lineageTag: f91d7e5d-96bb-4dbc-a5a3-078fb9cc67d8
+
+function DPMO =
+		(_Defects : SCALAR, _Units : SCALAR, _OpportunitiesPerUnit : SCALAR) =>
+		    VAR _TotalOpportunities = _Units * _OpportunitiesPerUnit
+		    RETURN
+		        IF(
+		            ISBLANK(_Defects) || ISBLANK(_TotalOpportunities) || _TotalOpportunities = 0,
+		            BLANK(),
+		            DIVIDE(_Defects, _TotalOpportunities) * 1000000
+		        )
+	lineageTag: 73d0ac4d-58ed-4a82-9310-e00894f83443
+
+function SigmaLevel =
+		(_Dpmo : SCALAR, _IncludeShift : SCALAR) =>
+		    VAR _DefectRate = DIVIDE(_Dpmo, 1000000)
+		    VAR _Yield = 1 - _DefectRate
+		    VAR _ZLongTerm = NormSInv(_Yield)
+		    VAR _Shift = IF(_IncludeShift = 1, 1.5, 0)
+		    RETURN
+		        IF(
+		            ISBLANK(_Dpmo) || ISBLANK(_ZLongTerm),
+		            BLANK(),
+		            _ZLongTerm + _Shift
+		        )
+	lineageTag: 7ea550cd-20d9-4373-8d5b-7ccf07bd68bc
+
+function ProcessSigmaWithin =
+		(_Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF) =>
+		    VAR _Ranked =
+		        ADDCOLUMNS(
+		            _Table,
+		            "_RN", RANKX(_Table, _OrderColumn, , ASC, DENSE)
+		        )
+		    VAR _WithRanges =
+		        ADDCOLUMNS(
+		            _Ranked,
+		            "_MovingRange",
+		                VAR _CurrentRN = [_RN]
+		                VAR _CurrentValue = _ValueColumn
+		                VAR _PriorValue =
+		                    MAXX(
+		                        FILTER(_Ranked, [_RN] = _CurrentRN - 1),
+		                        _ValueColumn
+		                    )
+		                RETURN
+		                    IF(ISBLANK(_PriorValue), BLANK(), ABS(_CurrentValue - _PriorValue))
+		        )
+		    VAR _AvgMovingRange = AVERAGEX(FILTER(_WithRanges, NOT ISBLANK([_MovingRange])), [_MovingRange])
+		    VAR _D2 = 1.128
+		    RETURN
+		        IF(ISBLANK(_AvgMovingRange), BLANK(), DIVIDE(_AvgMovingRange, _D2))
+	lineageTag: 04da15c1-d851-4b75-bfb4-8695911bcff5
+
+function Cp =
+		(_Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF, _USL : SCALAR, _LSL : SCALAR) =>
+		    VAR _Sigma = ProcessSigmaWithin(_Table, _ValueColumn, _OrderColumn)
+		    RETURN
+		        IF(
+		            ISBLANK(_USL) || ISBLANK(_LSL) || ISBLANK(_Sigma) || _Sigma = 0,
+		            BLANK(),
+		            DIVIDE(_USL - _LSL, 6 * _Sigma)
+		        )
+	lineageTag: e1d06a12-bada-46fe-a31a-4cbe606a0e9d
+
+function Cpk =
+		(_Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF, _USL : SCALAR, _LSL : SCALAR) =>
+		    VAR _Sigma = ProcessSigmaWithin(_Table, _ValueColumn, _OrderColumn)
+		    VAR _Mean = AVERAGEX(_Table, _ValueColumn)
+		    VAR _CpkUpper = DIVIDE(_USL - _Mean, 3 * _Sigma)
+		    VAR _CpkLower = DIVIDE(_Mean - _LSL, 3 * _Sigma)
+		    RETURN
+		        IF(
+		            ISBLANK(_USL) || ISBLANK(_LSL) || ISBLANK(_Sigma) || _Sigma = 0 || ISBLANK(_Mean),
+		            BLANK(),
+		            MIN(_CpkUpper, _CpkLower)
+		        )
+	lineageTag: ceb61c32-808d-434e-8717-5bef9a658e3b
+
+function Pp =
+		(_Table : TABLE, _ValueColumn : COLUMNREF, _USL : SCALAR, _LSL : SCALAR) =>
+		    VAR _Sigma = STDEVX.P(_Table, _ValueColumn)
+		    RETURN
+		        IF(
+		            ISBLANK(_USL) || ISBLANK(_LSL) || ISBLANK(_Sigma) || _Sigma = 0,
+		            BLANK(),
+		            DIVIDE(_USL - _LSL, 6 * _Sigma)
+		        )
+	lineageTag: 2872bf53-e384-4ef6-81c3-f273ce78ebdf
+
+function Ppk =
+		(_Table : TABLE, _ValueColumn : COLUMNREF, _USL : SCALAR, _LSL : SCALAR) =>
+		    VAR _Sigma = STDEVX.P(_Table, _ValueColumn)
+		    VAR _Mean = AVERAGEX(_Table, _ValueColumn)
+		    VAR _PpkUpper = DIVIDE(_USL - _Mean, 3 * _Sigma)
+		    VAR _PpkLower = DIVIDE(_Mean - _LSL, 3 * _Sigma)
+		    RETURN
+		        IF(
+		            ISBLANK(_USL) || ISBLANK(_LSL) || ISBLANK(_Sigma) || _Sigma = 0 || ISBLANK(_Mean),
+		            BLANK(),
+		            MIN(_PpkUpper, _PpkLower)
+		        )
+	lineageTag: 2fd983a9-c930-472b-88e3-1d4b1704acfe
+
+function ControlLimits =
+		(_Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF) =>
+		    VAR _Mean = AVERAGEX(_Table, _ValueColumn)
+		    VAR _Sigma = STDEVX.P(_Table, _ValueColumn)
+		    RETURN
+		        ROW(
+		            "CenterLine", _Mean,
+		            "UCL", IF(ISBLANK(_Sigma), BLANK(), _Mean + 3 * _Sigma),
+		            "LCL", IF(ISBLANK(_Sigma), BLANK(), _Mean - 3 * _Sigma),
+		            "Sigma", _Sigma
+		        )
+	lineageTag: 981f6dfa-33d9-43e5-a2b3-2d3752ec2257
+
+function IsNelsonRule1 =
+		(_CurrentValue : SCALAR, _Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF) =>
+		    VAR _Mean = AVERAGEX(_Table, _ValueColumn)
+		    VAR _Sigma = STDEVX.P(_Table, _ValueColumn)
+		    RETURN
+		        IF(
+		            ISBLANK(_CurrentValue) || ISBLANK(_Sigma) || _Sigma = 0,
+		            BLANK(),
+		            ABS(_CurrentValue - _Mean) > 3 * _Sigma
+		        )
+	lineageTag: dea6e419-e4a5-474e-9fe9-9842e65f3274
+
+function IsNelsonRule2 =
+		(_CurrentOrder : SCALAR, _Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF) =>
+		    VAR _Mean = AVERAGEX(_Table, _ValueColumn)
+		    VAR _Ranked = ADDCOLUMNS(_Table, "_RN", RANKX(_Table, _OrderColumn, , ASC, DENSE))
+		    VAR _CurrentRN = MAXX(FILTER(_Ranked, _OrderColumn = _CurrentOrder), [_RN])
+		    VAR _Window = FILTER(_Ranked, ISNUMBER(_CurrentRN) && [_RN] > _CurrentRN - 9 && [_RN] <= _CurrentRN)
+		    VAR _PointCount = COUNTROWS(_Window)
+		    VAR _AboveCount = COUNTROWS(FILTER(_Window, _ValueColumn > _Mean))
+		    VAR _BelowCount = COUNTROWS(FILTER(_Window, _ValueColumn < _Mean))
+		    RETURN
+		        IF(
+		            ISBLANK(_CurrentRN) || _PointCount < 9,
+		            BLANK(),
+		            _AboveCount = 9 || _BelowCount = 9
+		        )
+	lineageTag: 1a3cc42b-1933-4de3-9541-77150d92004e
+
+function IsNelsonRule3 =
+		(_CurrentOrder : SCALAR, _Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF) =>
+		    VAR _Ranked = ADDCOLUMNS(_Table, "_RN", RANKX(_Table, _OrderColumn, , ASC, DENSE))
+		    VAR _CurrentRN = MAXX(FILTER(_Ranked, _OrderColumn = _CurrentOrder), [_RN])
+		    VAR _Window = FILTER(_Ranked, ISNUMBER(_CurrentRN) && [_RN] > _CurrentRN - 6 && [_RN] <= _CurrentRN)
+		    VAR _WithDiffs =
+		        ADDCOLUMNS(
+		            _Window,
+		            "_Diff",
+		                VAR _RN = [_RN]
+		                VAR _CurrentVal = _ValueColumn
+		                VAR _PriorVal = MAXX(FILTER(_Window, [_RN] = _RN - 1), _ValueColumn)
+		                RETURN
+		                    IF(ISBLANK(_PriorVal), BLANK(), _CurrentVal - _PriorVal)
+		        )
+		    VAR _ValidDiffs = FILTER(_WithDiffs, NOT ISBLANK([_Diff]))
+		    VAR _DiffCount = COUNTROWS(_ValidDiffs)
+		    VAR _IncreasingCount = COUNTROWS(FILTER(_ValidDiffs, [_Diff] > 0))
+		    VAR _DecreasingCount = COUNTROWS(FILTER(_ValidDiffs, [_Diff] < 0))
+		    RETURN
+		        IF(
+		            ISBLANK(_CurrentRN) || COUNTROWS(_Window) < 6,
+		            BLANK(),
+		            (_IncreasingCount = _DiffCount && _DiffCount > 0) || (_DecreasingCount = _DiffCount && _DiffCount > 0)
+		        )
+	lineageTag: 26bf013e-62fc-415b-b4eb-3539154dab94
+
+function IsNelsonRule4 =
+		(_CurrentOrder : SCALAR, _Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF) =>
+		    VAR _Ranked = ADDCOLUMNS(_Table, "_RN", RANKX(_Table, _OrderColumn, , ASC, DENSE))
+		    VAR _CurrentRN = MAXX(FILTER(_Ranked, _OrderColumn = _CurrentOrder), [_RN])
+		    VAR _Window = FILTER(_Ranked, ISNUMBER(_CurrentRN) && [_RN] > _CurrentRN - 14 && [_RN] <= _CurrentRN)
+		    VAR _WithDirection =
+		        ADDCOLUMNS(
+		            _Window,
+		            "_Direction",
+		                VAR _RN = [_RN]
+		                VAR _CurrentVal = _ValueColumn
+		                VAR _PriorVal = MAXX(FILTER(_Window, [_RN] = _RN - 1), _ValueColumn)
+		                RETURN
+		                    IF(
+		                        ISBLANK(_PriorVal),
+		                        BLANK(),
+		                        IF(_CurrentVal > _PriorVal, 1, IF(_CurrentVal < _PriorVal, -1, 0))
+		                    )
+		        )
+		    VAR _WithAlternation =
+		        ADDCOLUMNS(
+		            _WithDirection,
+		            "_Alternates",
+		                VAR _RN = [_RN]
+		                VAR _CurrentDir = [_Direction]
+		                VAR _PriorDir = MAXX(FILTER(_WithDirection, [_RN] = _RN - 1), [_Direction])
+		                RETURN
+		                    IF(
+		                        ISBLANK(_PriorDir) || ISBLANK(_CurrentDir),
+		                        BLANK(),
+		                        _CurrentDir <> _PriorDir && _CurrentDir <> 0 && _PriorDir <> 0
+		                    )
+		        )
+		    VAR _CheckRows = FILTER(_WithAlternation, NOT ISBLANK([_Alternates]))
+		    VAR _FailCount = COUNTROWS(FILTER(_CheckRows, [_Alternates] = FALSE))
+		    RETURN
+		        IF(
+		            ISBLANK(_CurrentRN) || COUNTROWS(_Window) < 14 || COUNTROWS(_CheckRows) < 12,
+		            BLANK(),
+		            _FailCount = 0
+		        )
+	lineageTag: 374a60c8-dc3c-494c-9e32-c7f3737c0a22
+
+function ChartSummary =
+		(_Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF, _USL : SCALAR, _LSL : SCALAR) =>
+			VAR _Avg = AVERAGEX(_Table, _ValueColumn)
+			VAR _Sigma = STDEVX.P(_Table, _ValueColumn)
+			VAR _SigmaValid = NOT ISBLANK(_Sigma) && _Sigma <> 0
+			VAR _RangeValid = NOT ISBLANK(_USL) && NOT ISBLANK(_LSL)
+			VAR _AllFlaggedRows =
+			    FILTER(
+			        _Table,
+			        (_SigmaValid && ABS(_ValueColumn - _Avg) > 3 * _Sigma) || (_RangeValid && (_ValueColumn > _USL || _ValueColumn < _LSL))
+			    )
+			VAR _FlaggedCount = COUNTROWS(_AllFlaggedRows)
+			VAR _FlaggedDatesTable = DISTINCT(SELECTCOLUMNS(_AllFlaggedRows, "_Date", DATE(YEAR(_OrderColumn), MONTH(_OrderColumn), DAY(_OrderColumn))))
+			VAR _FlaggedDatesList = CONCATENATEX(_FlaggedDatesTable, FORMAT([_Date], "d mmmm"), ", ", [_Date], ASC)
+			RETURN
+			    IF(
+			        _FlaggedCount = 0,
+			        "No anomalies flagged",
+			        "Anomalies flagged: " & _FlaggedDatesList
+			    )
+	lineageTag: b1a6404e-3517-4bcd-9bd5-c4de2771a553
+

@@ -1,0 +1,57 @@
+table Fact_GridFrequency
+	lineageTag: 420966bc-5b0d-4574-864c-5bf863124a02
+
+	column dtm
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: bb5d32c5-afe4-4e5a-81fb-96ba0091a689
+		summarizeBy: none
+		sourceColumn: dtm
+
+		annotation SummarizationSetBy = Automatic
+
+	column f
+		dataType: double
+		lineageTag: 06874385-651c-4487-89b4-cec1596f18c3
+		summarizeBy: sum
+		sourceColumn: f
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 2918ca6f-4e6d-48f2-b0d4-9682970c0357
+		summarizeBy: none
+		sourceColumn: Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition Fact_GridFrequency = m
+		mode: import
+		source =
+				let
+				    WindowDays = 2,
+				    TargetMonthDate = Date.AddMonths(Date.StartOfMonth(DateTime.Date(DateTimeZone.FixedLocalNow())), -1),
+				    TargetYear = Date.Year(TargetMonthDate),
+				    TargetMonth = Date.Month(TargetMonthDate),
+				    AllReadings = fnGetGridFrequencyReadings(TargetYear, TargetMonth),
+				    MaxDtm = if Table.IsEmpty(AllReadings) then null else List.Max(AllReadings[dtm]),
+				    Filtered =
+				        if MaxDtm = null then
+				            AllReadings
+				        else
+				            Table.SelectRows(AllReadings, each [dtm] >= DateTime.From(Date.AddDays(DateTime.Date(MaxDtm), -WindowDays + 1))),
+				    AddedDate = Table.AddColumn(Filtered, "Date", each Date.From([dtm]), type date),
+				    ChangedType = Table.TransformColumnTypes(AddedDate, {{"dtm", type datetime}, {"f", type number}, {"Date", type date}})
+				in
+				    ChangedType
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

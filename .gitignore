@@ -1,0 +1,14 @@
+# Power BI Project (PBIP) ignore rules
+
+# Local semantic model cache — regenerated automatically when the model is opened in Power BI Desktop, and can be large. Never needs to be version controlled.
+**/.pbi/cache.abf
+
+# Local, machine-specific Desktop settings (paths, window state, last opened tab, etc.) — not meaningful to anyone but the machine that created them.
+**/.pbi/localSettings.json
+
+# Local editor backups Power BI Desktop sometimes creates
+**/.pbi/backup*
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db

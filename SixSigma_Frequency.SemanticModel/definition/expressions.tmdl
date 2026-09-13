@@ -1,0 +1,34 @@
+expression fnGetGridFrequencyReadings =
+		(Year as number, Month as number) as table =>
+		let
+		    EmptySchema = #table(
+		        type table [dtm = nullable datetime, f = nullable number],
+		        {}
+		    ),
+		    Result =
+		        try
+		            let
+		                PackageUrl = "https://api.neso.energy/api/3/action/package_show?id=system-frequency-data",
+		                PackageJson = Json.Document(Web.Contents(PackageUrl)),
+		                Resources = PackageJson[result][resources],
+		                TargetFileName = "fnew-" & Number.ToText(Year) & "-" & Number.ToText(Month) & ".csv",
+		                MatchingResources = List.Select(Resources, each Text.Contains([url], TargetFileName)),
+		                MatchingResource = List.First(MatchingResources),
+		                DownloadUrl = MatchingResource[url],
+		                Source = Csv.Document(Web.Contents(DownloadUrl), [Delimiter=",", Encoding=65001]),
+		                PromotedHeaders = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+		                ColNames = Table.ColumnNames(PromotedHeaders),
+		                Renamed = Table.RenameColumns(PromotedHeaders, {{ColNames{0}, "dtm"}, {ColNames{1}, "f"}}),
+		                ChangedType = Table.TransformColumnTypes(Renamed, {{"dtm", type datetime}, {"f", type number}})
+		            in
+		                ChangedType
+		        otherwise
+		            EmptySchema
+		in
+		    Result
+	lineageTag: 08b8b296-57b3-4437-93ef-830fef598125
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Function
+

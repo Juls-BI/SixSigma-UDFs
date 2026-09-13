@@ -1,0 +1,50 @@
+table Dim_GridThresholds
+	lineageTag: 98436cc4-7705-4a36-b141-3b8b073c6048
+
+	column SiteName
+		dataType: string
+		lineageTag: b21c177c-6834-4222-a7ec-6c3ae648c6be
+		summarizeBy: none
+		sourceColumn: SiteName
+
+		annotation SummarizationSetBy = Automatic
+
+	column USL
+		dataType: double
+		lineageTag: 850126ff-a952-4b88-9d02-e8b2aba81930
+		summarizeBy: sum
+		sourceColumn: USL
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column LSL
+		dataType: double
+		lineageTag: 5e6f6f6c-4ff1-4ac5-8f4e-c0f8156c58b0
+		summarizeBy: sum
+		sourceColumn: LSL
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition Dim_GridThresholds = m
+		mode: import
+		source =
+				// Dim_GridThresholds — specification limits, NOT calculated. USL/LSL here are a fixed regulatory requirement, not derived from Fact_GridFrequency. In Six Sigma, spec limits (USL/LSL) represent an external "voice of the customer/regulator" requirement, separate from control limits (UCL/LCL), which ARE calculated from the data itself (see the Center Line/UCL/LCL measures, driven by the ControlLimits UDF off Fact_GridFrequency[f]'s own mean/stdev).
+				// Source: NESO states GB grid frequency is statutorily required to stay within 1% of 50 Hz, i.e. 49.5-50.5 Hz. Verified at https://www.neso.energy/energy-101/electricity-explained/how-do-we-balance-grid/what-frequency (checked 13 Sept 2026).
+				// Note: NESO also sets itself a tighter internal operating target of 49.8-50.2 Hz in normal conditions — the statutory 49.5-50.5 range used below is the "this would be a serious incident" boundary, not day-to-day normal operation. If you'd rather your Cp/Cpk tell the story of "stays within NESO's own target" rather than "stays within the legal limit," swap the USL/LSL row below to 50.2/49.8 instead, and update this comment to match.
+				
+				let
+				    Source = #table(
+				        type table [SiteName = text, USL = number, LSL = number],
+				        {{"GB grid", 50.5, 49.5}}
+				    )
+				in
+				    Source
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

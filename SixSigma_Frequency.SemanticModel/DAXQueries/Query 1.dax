@@ -1,0 +1,111 @@
+DEFINE FUNCTION NormSInv = (_P : SCALAR) =>
+    VAR _A1 = -39.69683028665376
+    VAR _A2 = 220.9460984245205
+    VAR _A3 = -275.9285104469687
+    VAR _A4 = 138.3577518672690
+    VAR _A5 = -30.66479806614716
+    VAR _A6 = 2.506628277459239
+    VAR _B1 = -54.47609879822406
+    VAR _B2 = 161.5858368580409
+    VAR _B3 = -155.6989798598866
+    VAR _B4 = 66.80131188771972
+    VAR _B5 = -13.28068155288572
+    VAR _C1 = -0.007784894002430293
+    VAR _C2 = -0.3223964580411365
+    VAR _C3 = -2.400758277161838
+    VAR _C4 = -2.549732539343734
+    VAR _C5 = 4.374664141464968
+    VAR _C6 = 2.938163982698783
+    VAR _D1 = 0.007784695709041462
+    VAR _D2 = 0.3224671290700398
+    VAR _D3 = 2.445134137142996
+    VAR _D4 = 3.754408661907416
+    VAR _PLow = 0.02425
+    VAR _PHigh = 1 - _PLow
+    RETURN
+        IF(
+            ISBLANK(_P) || _P <= 0 || _P >= 1,
+            BLANK(),
+            IF(
+                _P < _PLow,
+                VAR _Q = SQRT(-2 * LN(_P))
+                RETURN
+                    DIVIDE(
+                        (((((_C1 * _Q + _C2) * _Q + _C3) * _Q + _C4) * _Q + _C5) * _Q + _C6),
+                        ((((_D1 * _Q + _D2) * _Q + _D3) * _Q + _D4) * _Q + 1)
+                    ),
+                IF(
+                    _P <= _PHigh,
+                    VAR _Q2 = _P - 0.5
+                    VAR _R = _Q2 * _Q2
+                    RETURN
+                        DIVIDE(
+                            (((((_A1 * _R + _A2) * _R + _A3) * _R + _A4) * _R + _A5) * _R + _A6) * _Q2,
+                            (((((_B1 * _R + _B2) * _R + _B3) * _R + _B4) * _R + _B5) * _R + 1)
+                        ),
+                    VAR _Q3 = SQRT(-2 * LN(1 - _P))
+                    RETURN
+                        -1 * DIVIDE(
+                            (((((_C1 * _Q3 + _C2) * _Q3 + _C3) * _Q3 + _C4) * _Q3 + _C5) * _Q3 + _C6),
+                            ((((_D1 * _Q3 + _D2) * _Q3 + _D3) * _Q3 + _D4) * _Q3 + 1)
+                        )
+                )
+            )
+        )
+
+EVALUATE {1}
+
+
+DEFINE FUNCTION DPMO = (_Defects : SCALAR, _Units : SCALAR, _OpportunitiesPerUnit : SCALAR) =>
+    VAR _TotalOpportunities = _Units * _OpportunitiesPerUnit
+    RETURN
+        IF(
+            ISBLANK(_Defects) || ISBLANK(_TotalOpportunities) || _TotalOpportunities = 0,
+            BLANK(),
+            DIVIDE(_Defects, _TotalOpportunities) * 1000000
+        )
+
+EVALUATE {1}
+
+DEFINE FUNCTION SigmaLevel = (_Dpmo : SCALAR, _IncludeShift : SCALAR) =>
+    VAR _DefectRate = DIVIDE(_Dpmo, 1000000)
+    VAR _Yield = 1 - _DefectRate
+    VAR _ZLongTerm = NormSInv(_Yield)
+    VAR _Shift = IF(_IncludeShift = 1, 1.5, 0)
+    RETURN
+        IF(
+            ISBLANK(_Dpmo) || ISBLANK(_ZLongTerm),
+            BLANK(),
+            _ZLongTerm + _Shift
+        )
+
+EVALUATE {1}
+
+DEFINE FUNCTION ProcessSigmaWithin = (_Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF) =>
+    VAR _Ranked =
+        ADDCOLUMNS(
+            _Table,
+            "_RN", RANKX(_Table, _OrderColumn, , ASC, DENSE)
+        )
+    VAR _WithRanges =
+        ADDCOLUMNS(
+            _Ranked,
+            "_MovingRange",
+                VAR _CurrentRN = [_RN]
+                VAR _CurrentValue = _ValueColumn
+                VAR _PriorValue =
+                    MAXX(
+                        FILTER(_Ranked, [_RN] = _CurrentRN - 1),
+                        _ValueColumn
+                    )
+                RETURN
+                    IF(ISBLANK(_PriorValue), BLANK(), ABS(_CurrentValue - _PriorValue))
+        )
+    VAR _AvgMovingRange = AVERAGEX(FILTER(_WithRanges, NOT ISBLANK([_MovingRange])), [_MovingRange])
+    VAR _D2 = 1.128
+    RETURN
+        IF(ISBLANK(_AvgMovingRange), BLANK(), DIVIDE(_AvgMovingRange, _D2))
+
+EVALUATE {1}
+
+

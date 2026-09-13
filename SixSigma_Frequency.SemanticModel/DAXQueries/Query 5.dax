@@ -1,0 +1,16 @@
+DEFINE FUNCTION ChartSummary = (_Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF, _USL : SCALAR, _LSL : SCALAR) =>
+    VAR _Avg = AVERAGEX(_Table, _ValueColumn)
+    VAR _Sigma = STDEVX.P(_Table, _ValueColumn)
+    VAR _SigmaValid = NOT ISBLANK(_Sigma) && _Sigma <> 0
+    VAR _SigmaFlaggedRows = FILTER(_Table, _SigmaValid && ABS(_ValueColumn - _Avg) > 3 * _Sigma)
+    VAR _RangeFlaggedRows = IF(ISBLANK(_USL) || ISBLANK(_LSL), FILTER(_Table, FALSE), FILTER(_Table, _ValueColumn > _USL || _ValueColumn < _LSL))
+    VAR _AllFlaggedOrders = DISTINCT(UNION(SELECTCOLUMNS(_SigmaFlaggedRows, "_Order", _OrderColumn), SELECTCOLUMNS(_RangeFlaggedRows, "_Order", _OrderColumn)))
+    VAR _FlaggedCount = COUNTROWS(_AllFlaggedOrders)
+    RETURN
+        IF(
+            _FlaggedCount = 0,
+            "No anomalies flagged.",
+            CONCATENATEX(_AllFlaggedOrders, FORMAT([_Order], "d mmmm hh:mm:ss"), ", ", [_Order], ASC)
+        )
+
+EVALUATE {1}

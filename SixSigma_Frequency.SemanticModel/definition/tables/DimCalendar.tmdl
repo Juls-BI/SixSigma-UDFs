@@ -1,0 +1,79 @@
+table DimCalendar
+	lineageTag: 8aac8064-4e2e-4d93-81dd-e0f32875d12f
+
+	column Date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: cfe4f4db-863f-4c15-8ae0-64c82b3a50d8
+		summarizeBy: none
+		sourceColumn: Date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Year
+		dataType: int64
+		formatString: 0
+		lineageTag: bf1a4a40-e57e-47e4-81a7-05e5a1ac36e5
+		summarizeBy: sum
+		sourceColumn: Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column Month
+		dataType: int64
+		formatString: 0
+		lineageTag: 7fc57de5-e39d-4a6d-9f8f-6be686dba7de
+		summarizeBy: sum
+		sourceColumn: Month
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthName
+		dataType: string
+		lineageTag: 74072bf6-b659-4f68-9c7f-a9d56e8d95ca
+		summarizeBy: none
+		sourceColumn: MonthName
+
+		annotation SummarizationSetBy = Automatic
+
+	column Day
+		dataType: int64
+		formatString: 0
+		lineageTag: b03cb84c-c34b-4224-bf3e-0e81530db9d3
+		summarizeBy: sum
+		sourceColumn: Day
+
+		annotation SummarizationSetBy = Automatic
+
+	column Weekday
+		dataType: string
+		lineageTag: ee3defae-a6ed-409c-a49a-453dd85da7ec
+		summarizeBy: none
+		sourceColumn: Weekday
+
+		annotation SummarizationSetBy = Automatic
+
+	partition DimCalendar = m
+		mode: import
+		source =
+				let
+				    MinDate = List.Min(Fact_GridFrequency[Date]),
+				    MaxDate = List.Max(Fact_GridFrequency[Date]),
+				    DayCount = Duration.Days(MaxDate - MinDate) + 1,
+				    DateList = List.Dates(MinDate, DayCount, #duration(1, 0, 0, 0)),
+				    #"Converted to Table" = Table.FromList(DateList, Splitter.SplitByNothing(), {"Date"}),
+				    ChangedType = Table.TransformColumnTypes(#"Converted to Table", {{"Date", type date}}),
+				    AddedYear = Table.AddColumn(ChangedType, "Year", each Date.Year([Date]), Int64.Type),
+				    AddedMonth = Table.AddColumn(AddedYear, "Month", each Date.Month([Date]), Int64.Type),
+				    AddedMonthName = Table.AddColumn(AddedMonth, "MonthName", each Date.MonthName([Date]), type text),
+				    AddedDay = Table.AddColumn(AddedMonthName, "Day", each Date.Day([Date]), Int64.Type),
+				    AddedWeekday = Table.AddColumn(AddedDay, "Weekday", each Date.DayOfWeekName([Date]), type text)
+				in
+				    AddedWeekday
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

@@ -1,0 +1,21 @@
+createOrReplace
+	function ChartSummary =
+		(_Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF, _USL : SCALAR, _LSL : SCALAR) =>
+			VAR _Avg = AVERAGEX(_Table, _ValueColumn)
+			VAR _Sigma = STDEVX.P(_Table, _ValueColumn)
+			VAR _SigmaValid = NOT ISBLANK(_Sigma) && _Sigma <> 0
+			VAR _RangeValid = NOT ISBLANK(_USL) && NOT ISBLANK(_LSL)
+			VAR _AllFlaggedRows =
+			    FILTER(
+			        _Table,
+			        (_SigmaValid && ABS(_ValueColumn - _Avg) > 3 * _Sigma) || (_RangeValid && (_ValueColumn > _USL || _ValueColumn < _LSL))
+			    )
+			VAR _FlaggedCount = COUNTROWS(_AllFlaggedRows)
+			VAR _FlaggedDatesTable = DISTINCT(SELECTCOLUMNS(_AllFlaggedRows, "_Date", DATE(YEAR(_OrderColumn), MONTH(_OrderColumn), DAY(_OrderColumn))))
+			VAR _FlaggedDatesList = CONCATENATEX(_FlaggedDatesTable, FORMAT([_Date], "d mmmm"), ", ", [_Date], ASC)
+			RETURN
+			    IF(
+			        _FlaggedCount = 0,
+			        "No anomalies flagged",
+			        "Anomalies flagged: " & _FlaggedDatesList
+			    )

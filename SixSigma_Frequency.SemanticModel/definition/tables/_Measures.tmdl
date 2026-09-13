@@ -1,0 +1,355 @@
+table _Measures
+	lineageTag: 9fee1df9-c685-4491-9f8b-7dc42f3b3f7d
+
+	measure 'Current USL' = SELECTEDVALUE(Dim_GridThresholds[USL])
+		displayFolder: thresholds & capability indices
+		lineageTag: 36ba0fe6-8785-4d01-a7a8-4cc6c47fa271
+
+	measure 'Current LSL' = SELECTEDVALUE(Dim_GridThresholds[LSL])
+		displayFolder: thresholds & capability indices
+		lineageTag: e81e34e1-2092-4774-8486-f0e93a013c28
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Defect Count' =
+			
+			VAR _USL = [Current USL]
+			VAR _LSL = [Current LSL]
+			RETURN
+			    IF(
+			        ISBLANK(_USL) || ISBLANK(_LSL),
+			        BLANK(),
+			        CALCULATE(
+			            COUNTROWS(Fact_GridFrequency),
+			            FILTER(Fact_GridFrequency, Fact_GridFrequency[f] > _USL || Fact_GridFrequency[f] < _LSL)
+			        )
+			    )+0
+		formatString: 0
+		displayFolder: thresholds & capability indices
+		lineageTag: 0eb76932-7b89-4e9a-9217-7b484dbc7c9a
+
+	measure 'Unit Count' = COUNTROWS(ALLSELECTED(Fact_GridFrequency))
+		formatString: 0
+		displayFolder: thresholds & capability indices
+		lineageTag: 8d5c41a4-0118-4961-8a59-2aa2cfce94c1
+
+	measure 'DPMO Value' = DPMO([Defect Count], [Unit Count], 1)
+		displayFolder: thresholds & capability indices
+		lineageTag: 5ebc79f8-7f17-4c4b-9a1d-708a3dd2754a
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Sigma Level Value' = SigmaLevel([DPMO Value], 1)
+		displayFolder: thresholds & capability indices
+		lineageTag: 5ab92d5a-97dc-453c-8129-3ba14f11e01a
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Cp Value' =
+			
+			VAR _Table = ALLSELECTED(Fact_GridFrequency)
+			RETURN
+			    Cp(_Table, Fact_GridFrequency[f], Fact_GridFrequency[dtm], [Current USL], [Current LSL])
+		displayFolder: thresholds & capability indices
+		lineageTag: 471b3f2f-1841-4d94-9659-f24a8378ae0e
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Cpk Value' =
+			
+			VAR _Table = ALLSELECTED(Fact_GridFrequency)
+			RETURN
+			    Cpk(_Table, Fact_GridFrequency[f], Fact_GridFrequency[dtm], [Current USL], [Current LSL])
+		displayFolder: thresholds & capability indices
+		lineageTag: 5bda66f8-18a5-42d4-a268-8213f1470008
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Pp Value' =
+			
+			VAR _Table = ALLSELECTED(Fact_GridFrequency)
+			RETURN
+			    Pp(_Table, Fact_GridFrequency[f], [Current USL], [Current LSL])
+		displayFolder: thresholds & capability indices
+		lineageTag: 9c1ebf31-2c42-414b-8801-d5891ebb2022
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Ppk Value' = ```
+			
+			VAR _Table = ALLSELECTED(Fact_GridFrequency)
+			RETURN
+			    Ppk(_Table, Fact_GridFrequency[f], [Current USL], [Current LSL])
+			
+			```
+		displayFolder: thresholds & capability indices
+		lineageTag: 2cdd6445-1cd7-406a-892e-4c6a7d70959d
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Center Line' =
+			
+			VAR _Table = ALLSELECTED(Fact_GridFrequency)
+			VAR _Limits = ControlLimits(_Table, Fact_GridFrequency[f], Fact_GridFrequency[dtm])
+			RETURN
+			    MAXX(_Limits, [CenterLine])
+		displayFolder: thresholds & capability indices
+		lineageTag: 6555e270-20e8-412e-b5de-a2b794c8faed
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure UCL =
+			
+			VAR _Table = ALLSELECTED(Fact_GridFrequency)
+			VAR _Limits = ControlLimits(_Table, Fact_GridFrequency[f], Fact_GridFrequency[dtm])
+			RETURN
+			    MAXX(_Limits, [UCL])
+		displayFolder: thresholds & capability indices
+		lineageTag: 6721a27c-a439-4506-a452-a92a204b6478
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure LCL =
+			
+			VAR _Table = ALLSELECTED(Fact_GridFrequency)
+			VAR _Limits = ControlLimits(_Table, Fact_GridFrequency[f], Fact_GridFrequency[dtm])
+			RETURN
+			    MAXX(_Limits, [LCL])
+		displayFolder: thresholds & capability indices
+		lineageTag: 6af87b61-9f29-4983-882f-c374dbe5ab01
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Is Nelson Rule 1' =
+			
+			VAR _Table = ALLSELECTED(Fact_GridFrequency)
+			VAR _CurrentValue = SELECTEDVALUE(Fact_GridFrequency[f])
+			RETURN
+			    IsNelsonRule1(_CurrentValue, _Table, Fact_GridFrequency[f], Fact_GridFrequency[dtm])
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		displayFolder: Nelson rules & range-flag measures
+		lineageTag: 52eebf07-cf8b-434f-a4a5-4f835100f93e
+
+	measure 'Is Nelson Rule 3' =
+			
+			VAR _Table = ALLSELECTED(Fact_GridFrequency)
+			VAR _CurrentOrder = SELECTEDVALUE(Fact_GridFrequency[dtm])
+			RETURN
+			    IsNelsonRule3(_CurrentOrder, _Table, Fact_GridFrequency[f], Fact_GridFrequency[dtm])
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		displayFolder: Nelson rules & range-flag measures
+		lineageTag: 00a2cfcf-2486-41bf-b117-b22d5be051d9
+
+	measure 'Is Nelson Rule 4' =
+			
+			VAR _Table = ALLSELECTED(Fact_GridFrequency)
+			VAR _CurrentOrder = SELECTEDVALUE(Fact_GridFrequency[dtm])
+			RETURN
+			    IsNelsonRule4(_CurrentOrder, _Table, Fact_GridFrequency[f], Fact_GridFrequency[dtm])
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		displayFolder: Nelson rules & range-flag measures
+		lineageTag: 0887d1ed-bb44-491b-b813-412252c754c0
+
+	measure 'Flagged by Nelson Rule 1' =
+			
+			VAR _CurrentValue = SELECTEDVALUE(Fact_GridFrequency[f])
+			RETURN
+			    IF([Is Nelson Rule 1] = TRUE(), _CurrentValue, BLANK())
+		displayFolder: Nelson rules & range-flag measures
+		lineageTag: 68b49333-2fb0-4eea-833b-7210d16e44cb
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Is Beyond Statutory Range' =
+			
+			VAR _CurrentValue = SELECTEDVALUE(Fact_GridFrequency[f])
+			VAR _USL = [Current USL]
+			VAR _LSL = [Current LSL]
+			RETURN
+			    IF(
+			        ISBLANK(_CurrentValue) || ISBLANK(_USL) || ISBLANK(_LSL),
+			        BLANK(),
+			        _CurrentValue > _USL || _CurrentValue < _LSL
+			    )
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		displayFolder: Nelson rules & range-flag measures
+		lineageTag: 9ffede0c-32e4-4754-b320-fc763c0b3d8a
+
+	measure 'Flagged Beyond Statutory Range' =
+			
+			VAR _CurrentValue = SELECTEDVALUE(Fact_GridFrequency[f])
+			RETURN
+			    IF([Is Beyond Statutory Range] = TRUE(), _CurrentValue, BLANK())
+		displayFolder: Nelson rules & range-flag measures
+		lineageTag: 2404f4aa-27a2-4cad-9ca2-ad2b04ed818f
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Sigma Level Status' = ```
+			
+			VAR _USL = [Current USL]
+			VAR _LSL = [Current LSL]
+			VAR _Sigma = [Sigma Level Value]
+			VAR _Defects = [Defect Count]
+			RETURN
+			    SWITCH(
+			        TRUE(),
+			        ISBLANK(_USL) || ISBLANK(_LSL), BLANK(),
+			        ISBLANK(_Sigma) && _Defects = 0, "✓ World class",
+			        ISBLANK(_Sigma), BLANK(),
+			        _Sigma >= 6, "✓ World class",
+			        _Sigma >= 5, "✓ Excellent",
+			        _Sigma >= 4, "✓ Good",
+			        _Sigma >= 3, "⚠ Moderate",
+			        _Sigma >= 2, "⚠ Poor",
+			        "⚠ Very poor"
+			    )
+			
+			```
+		displayFolder: status/display text, the KPI value, chart summary & titles
+		lineageTag: 54377d07-4d74-486e-89d3-ceadc4de653b
+
+	measure 'DPMO Status' = [Sigma Level Status]
+		displayFolder: status/display text, the KPI value, chart summary & titles
+		lineageTag: 61e12bb3-8227-45da-b55c-d78f51ee1bad
+
+	measure 'Cpk Status' =
+			
+			VAR _Cpk = [Cpk Value]
+			RETURN
+			    SWITCH(
+			        TRUE(),
+			        ISBLANK(_Cpk), BLANK(),
+			        _Cpk >= 1.33, "✓ Capable",
+			        _Cpk >= 1, "✓ Marginal",
+			        "⚠ Not capable"
+			    )
+		displayFolder: status/display text, the KPI value, chart summary & titles
+		lineageTag: 8e314ef6-bb73-457c-a728-31354609044c
+
+	measure 'Ppk Status' =
+			
+			VAR _Ppk = [Ppk Value]
+			RETURN
+			    SWITCH(
+			        TRUE(),
+			        ISBLANK(_Ppk), BLANK(),
+			        _Ppk >= 1.33, "✓ Capable",
+			        _Ppk >= 1, "✓ Marginal",
+			        "⚠ Not capable"
+			    )
+		displayFolder: status/display text, the KPI value, chart summary & titles
+		lineageTag: 824d574b-48fe-4fc2-8389-b5163264ee08
+
+	measure 'Sigma Level Display' =
+			
+			VAR _USL = [Current USL]
+			VAR _LSL = [Current LSL]
+			VAR _Value = [Sigma Level Value]
+			VAR _Defects = [Defect Count]
+			RETURN
+			    IF(
+			        ISBLANK(_USL) || ISBLANK(_LSL),
+			        "Threshold pending research",
+			        IF(
+			            ISBLANK(_Value) && _Defects = 0,
+			            "> 6σ",
+			            IF(ISBLANK(_Value), "Insufficient data", FORMAT(_Value, "0.0") & "σ")
+			        )
+			    )
+		displayFolder: status/display text, the KPI value, chart summary & titles
+		lineageTag: d5640dff-b371-4831-8fac-c9314361571b
+
+	measure 'DPMO Display' =
+			
+			VAR _USL = [Current USL]
+			VAR _LSL = [Current LSL]
+			VAR _Value = [DPMO Value]
+			VAR _Defects = [Defect Count]
+			RETURN
+			    IF(
+			        ISBLANK(_USL) || ISBLANK(_LSL),
+			        "Threshold pending research",
+			        IF(ISBLANK(_Defects), "Insufficient data", FORMAT(_Value, "#,0"))
+			    )
+		displayFolder: status/display text, the KPI value, chart summary & titles
+		lineageTag: 416c70a1-1656-487d-8714-caf560c842f3
+
+	measure 'Cpk Display' =
+			
+			VAR _Value = [Cpk Value]
+			RETURN
+			    IF(ISBLANK(_Value), "Threshold pending research", FORMAT(_Value, "0.00"))
+		displayFolder: status/display text, the KPI value, chart summary & titles
+		lineageTag: bada0bb4-dc25-4f84-a1d4-8c9244d60b8b
+
+	measure 'Ppk Display' =
+			
+			VAR _Value = [Ppk Value]
+			RETURN
+			    IF(ISBLANK(_Value), "Threshold pending research", FORMAT(_Value, "0.00"))
+		displayFolder: status/display text, the KPI value, chart summary & titles
+		lineageTag: fea1e247-bc7e-4a2f-ad85-ba5cb7c71a7b
+
+	measure 'Grid Frequency' = AVERAGE(Fact_GridFrequency[f])
+		displayFolder: status/display text, the KPI value, chart summary & titles
+		lineageTag: 12d081d5-8535-44b8-8f66-9d7dc9a13c91
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Control Chart Title' =
+			
+			VAR _Start = CALCULATE(MIN(Fact_GridFrequency[dtm]), ALLSELECTED(Fact_GridFrequency))
+			VAR _End = CALCULATE(MAX(Fact_GridFrequency[dtm]), ALLSELECTED(Fact_GridFrequency))
+			RETURN
+			    "Control Chart - " & FORMAT(_Start, "dd/mm hh:mm") & " until " & FORMAT(_End, "dd/mm hh:mm")
+		displayFolder: status/display text, the KPI value, chart summary & titles
+		lineageTag: 8efb27f3-3618-448f-9cea-3dc929b5a2f3
+
+	measure 'Summary Title' =
+			
+			VAR _Start = CALCULATE(MIN(Fact_GridFrequency[dtm]), ALLSELECTED(Fact_GridFrequency))
+			VAR _End = CALCULATE(MAX(Fact_GridFrequency[dtm]), ALLSELECTED(Fact_GridFrequency))
+			RETURN
+			    "Control Chart - " & FORMAT(_Start, "dd/mm/yyyy hh:mm") & " until " & FORMAT(_End, "dd/mm/yyyy hh:mm")
+		displayFolder: status/display text, the KPI value, chart summary & titles
+		lineageTag: a696791c-261e-4e91-b487-bafa75c60ab7
+
+	measure 'Chart Subtitle' =
+			
+			VAR _Table = ALLSELECTED(Fact_GridFrequency)
+			RETURN
+			    ChartSummary(_Table, Fact_GridFrequency[f], Fact_GridFrequency[dtm], [Current USL], [Current LSL])
+		lineageTag: 3078da24-0a1a-413a-809a-69c5062cdb23
+
+	measure 'Data Source Note' =
+			
+			VAR _USL = SELECTEDVALUE(Dim_GridThresholds[USL])
+			VAR _LSL = SELECTEDVALUE(Dim_GridThresholds[LSL])
+			VAR _Site = SELECTEDVALUE(Dim_GridThresholds[SiteName], "GB grid")
+			RETURN
+			    "Data source: National Energy System Operator (NESO) system frequency data (neso.energy/data-portal/system-frequency-data). Statutory operating limits for " & _Site & ": " & FORMAT(_LSL, "0.0") & "–" & FORMAT(_USL, "0.0") & " Hz."
+		lineageTag: 1a402047-8c98-424b-b333-01f79808639f
+
+	column Column1
+		dataType: string
+		isHidden
+		lineageTag: b5e26133-9c8b-49fd-bb1e-edc42305a0b2
+		summarizeBy: none
+		sourceColumn: Column1
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition _Measures = m
+		mode: import
+		source =
+				let
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i44FAA==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [Column1 = _t]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source,{{"Column1", type text}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+

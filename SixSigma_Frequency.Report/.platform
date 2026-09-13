@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "SixSigma_Frequency"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "83394f9c-e326-45a4-99ef-5d10caebf703"
+  }
+}

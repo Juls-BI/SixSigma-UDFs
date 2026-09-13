@@ -1,0 +1,37 @@
+DEFINE FUNCTION ControlLimits = (_Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF) =>
+    VAR _Mean = AVERAGEX(_Table, _ValueColumn)
+    VAR _Sigma = STDEVX.P(_Table, _ValueColumn)
+    RETURN
+        ROW(
+            "CenterLine", _Mean,
+            "UCL", IF(ISBLANK(_Sigma), BLANK(), _Mean + 3 * _Sigma),
+            "LCL", IF(ISBLANK(_Sigma), BLANK(), _Mean - 3 * _Sigma),
+            "Sigma", _Sigma
+        )
+
+EVALUATE {1}
+
+DEFINE FUNCTION IsNelsonRule1 = (_CurrentValue : SCALAR, _Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF) =>
+    VAR _Mean = AVERAGEX(_Table, _ValueColumn)
+    VAR _Sigma = STDEVX.P(_Table, _ValueColumn)
+    RETURN
+        IF(
+            ISBLANK(_CurrentValue) || ISBLANK(_Sigma) || _Sigma = 0,
+            BLANK(),
+            ABS(_CurrentValue - _Mean) > 3 * _Sigma
+        )
+
+EVALUATE {1}
+
+DEFINE FUNCTION IsNelsonRule1 = (_CurrentValue : SCALAR, _Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF) =>
+    VAR _Mean = AVERAGEX(_Table, _ValueColumn)
+    VAR _Sigma = STDEVX.P(_Table, _ValueColumn)
+    RETURN
+        IF(
+            ISBLANK(_CurrentValue) || ISBLANK(_Sigma) || _Sigma = 0,
+            BLANK(),
+            ABS(_CurrentValue - _Mean) > 3 * _Sigma
+        )
+
+EVALUATE {1}
+

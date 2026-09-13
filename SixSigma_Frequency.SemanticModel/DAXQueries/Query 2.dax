@@ -1,0 +1,50 @@
+DEFINE FUNCTION Cp = (_Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF, _USL : SCALAR, _LSL : SCALAR) =>
+    VAR _Sigma = ProcessSigmaWithin(_Table, _ValueColumn, _OrderColumn)
+    RETURN
+        IF(
+            ISBLANK(_USL) || ISBLANK(_LSL) || ISBLANK(_Sigma) || _Sigma = 0,
+            BLANK(),
+            DIVIDE(_USL - _LSL, 6 * _Sigma)
+        )
+
+EVALUATE {1}
+
+DEFINE FUNCTION Cpk = (_Table : TABLE, _ValueColumn : COLUMNREF, _OrderColumn : COLUMNREF, _USL : SCALAR, _LSL : SCALAR) =>
+    VAR _Sigma = ProcessSigmaWithin(_Table, _ValueColumn, _OrderColumn)
+    VAR _Mean = AVERAGEX(_Table, _ValueColumn)
+    VAR _CpkUpper = DIVIDE(_USL - _Mean, 3 * _Sigma)
+    VAR _CpkLower = DIVIDE(_Mean - _LSL, 3 * _Sigma)
+    RETURN
+        IF(
+            ISBLANK(_USL) || ISBLANK(_LSL) || ISBLANK(_Sigma) || _Sigma = 0 || ISBLANK(_Mean),
+            BLANK(),
+            MIN(_CpkUpper, _CpkLower)
+        )
+
+EVALUATE {1}
+
+DEFINE FUNCTION Pp = (_Table : TABLE, _ValueColumn : COLUMNREF, _USL : SCALAR, _LSL : SCALAR) =>
+    VAR _Sigma = STDEVX.P(_Table, _ValueColumn)
+    RETURN
+        IF(
+            ISBLANK(_USL) || ISBLANK(_LSL) || ISBLANK(_Sigma) || _Sigma = 0,
+            BLANK(),
+            DIVIDE(_USL - _LSL, 6 * _Sigma)
+        )
+
+EVALUATE {1}
+
+DEFINE FUNCTION Ppk = (_Table : TABLE, _ValueColumn : COLUMNREF, _USL : SCALAR, _LSL : SCALAR) =>
+    VAR _Sigma = STDEVX.P(_Table, _ValueColumn)
+    VAR _Mean = AVERAGEX(_Table, _ValueColumn)
+    VAR _PpkUpper = DIVIDE(_USL - _Mean, 3 * _Sigma)
+    VAR _PpkLower = DIVIDE(_Mean - _LSL, 3 * _Sigma)
+    RETURN
+        IF(
+            ISBLANK(_USL) || ISBLANK(_LSL) || ISBLANK(_Sigma) || _Sigma = 0 || ISBLANK(_Mean),
+            BLANK(),
+            MIN(_PpkUpper, _PpkLower)
+        )
+
+EVALUATE {1}
+
